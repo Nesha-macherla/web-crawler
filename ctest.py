@@ -1,5 +1,5 @@
 import requests
-import BeautifulSoup
+import BeautifulSoup4
 from urllib.parse import urljoin
 import re
 from typing import List, Tuple
