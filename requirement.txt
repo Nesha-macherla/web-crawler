@@ -1,6 +1,6 @@
 requests
 numpy
-sentence_transformers
+SentenceTransformers
 transformers
 torch
 beautifulsoup4==4.12.2
