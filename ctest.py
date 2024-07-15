@@ -6,7 +6,7 @@ from collections import deque
 import time
 import numpy as np
 #from bs4 import BeautifulSoup
-from sentence_transformers import SentenceTransformer
+#from sentence_transformers import SentenceTransformer
 from transformers import T5Tokenizer, T5ForConditionalGeneration
 import torch
 
@@ -20,6 +20,13 @@ except ImportError:
         import subprocess
         subprocess.check_call([sys.executable, "-m", "pip", "install", "beautifulsoup4"])
         from bs4 import BeautifulSoup
+try:
+    from sentence_transformers import SentenceTransformer
+except ImportError:
+    import sys
+    import subprocess
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "sentence-transformers"])
+    from sentence_transformers import SentenceTransformer
 
 
 
