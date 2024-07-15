@@ -5,43 +5,11 @@ from typing import List, Tuple
 from collections import deque
 import time
 import numpy as np
-#from bs4 import BeautifulSoup
-#from sentence_transformers import SentenceTransformer
-#from transformers import T5Tokenizer, T5ForConditionalGeneration
-#import torch
+from bs4 import BeautifulSoup
+from sentence_transformers import SentenceTransformer
+from transformers import T5Tokenizer, T5ForConditionalGeneration
+import torch
 
-try:
-    from bs4 import BeautifulSoup
-except ImportError:
-    try:
-        from BeautifulSoup import BeautifulSoup
-    except ImportError:
-        import sys
-        import subprocess
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "beautifulsoup4"])
-        from bs4 import BeautifulSoup
-try:
-    from sentence_transformers import SentenceTransformer
-except ImportError:
-    import sys
-    import subprocess
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "sentence-transformers"])
-    from sentence_transformers import SentenceTransformer
-try:
-    from transformers import T5Tokenizer, T5ForConditionalGeneration
-except ImportError:
-    import sys
-    import subprocess
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "T5Tokenizer", "T5ForConditionalGeneration"])
-    from transformers import T5Tokenizer, T5ForConditionalGeneration
-try:
-     import torch
-except ImportError:
-    import sys
-    import subprocess
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "torch"])
-    import torch
-  
 
 
 
