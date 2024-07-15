@@ -9,7 +9,15 @@ from bs4 import BeautifulSoup
 from sentence_transformers import SentenceTransformer
 from transformers import T5Tokenizer, T5ForConditionalGeneration
 import torch
+import importlib.util
 
+packages = ['bs4', 'torch']
+
+for package in packages:
+    if importlib.util.find_spec(package) is None:
+        st.error(f"Package {package} is not installed.")
+    else:
+        st.success(f"Package {package} is installed.")
 
 
 
