@@ -8,7 +8,7 @@ import numpy as np
 #from bs4 import BeautifulSoup
 #from sentence_transformers import SentenceTransformer
 #from transformers import T5Tokenizer, T5ForConditionalGeneration
-import torch
+#import torch
 
 try:
     from bs4 import BeautifulSoup
