@@ -5,6 +5,22 @@ from typing import List, Tuple
 from collections import deque
 import time
 import numpy as np
+import streamlit as st
+import importlib.util
+
+# List of packages to check
+packages = ['bs4', 'torch', 'sentence_transformers', 'transformers', 'numpy']
+
+# Function to check if a package is installed
+def check_package(package_name):
+    if importlib.util.find_spec(package_name) is None:
+        st.error(f"Package {package_name} is not installed.")
+    else:
+        st.success(f"Package {package_name} is installed.")
+
+# Check each package
+for package in packages:
+    check_package(package)
 from bs4 import BeautifulSoup
 from sentence_transformers import SentenceTransformer
 from transformers import T5Tokenizer, T5ForConditionalGeneration
