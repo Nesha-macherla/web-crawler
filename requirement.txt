@@ -1,5 +1,4 @@
 requests
-bs4
 numpy
 sentence-transformers
 transformers
