@@ -27,6 +27,15 @@ except ImportError:
     import subprocess
     subprocess.check_call([sys.executable, "-m", "pip", "install", "sentence-transformers"])
     from sentence_transformers import SentenceTransformer
+try:
+    from transformers import T5Tokenizer, T5ForConditionalGeneration
+except ImportError:
+    import sys
+    import subprocess
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "sentence-transformers"])
+    from transformers import T5Tokenizer, T5ForConditionalGeneration
+
+  
 
 
 
