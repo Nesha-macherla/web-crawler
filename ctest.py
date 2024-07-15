@@ -32,9 +32,15 @@ try:
 except ImportError:
     import sys
     import subprocess
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "sentence-transformers"])
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "T5Tokenizer", "T5ForConditionalGeneration"])
     from transformers import T5Tokenizer, T5ForConditionalGeneration
-
+try:
+     import torch
+except ImportError:
+    import sys
+    import subprocess
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "torch"])
+    import torch
   
 
 
