@@ -3,5 +3,5 @@ numpy
 sentence-transformers
 transformers
 torch
-beautifulsoup4==4.9.3
+beautifulsoup4==4.10.3
 streamlit==1.24.0
