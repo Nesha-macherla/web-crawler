@@ -10,14 +10,19 @@ from sentence_transformers import SentenceTransformer
 from transformers import T5Tokenizer, T5ForConditionalGeneration
 import torch
 import importlib.util
-
+# List of packages to check
 packages = ['bs4', 'torch']
 
-for package in packages:
-    if importlib.util.find_spec(package) is None:
-        st.error(f"Package {package} is not installed.")
+# Function to check if a package is installed
+def check_package(package_name):
+    if importlib.util.find_spec(package_name) is None:
+        st.error(f"Package {package_name} is not installed.")
     else:
-        st.success(f"Package {package} is installed.")
+        st.success(f"Package {package_name} is installed.")
+
+# Check each package
+for package in packages:
+    check_package(package)
 
 
 
