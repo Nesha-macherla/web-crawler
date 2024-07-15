@@ -1,5 +1,4 @@
 import requests
-from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 import re
 from typing import List, Tuple
@@ -9,6 +8,20 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 from transformers import T5Tokenizer, T5ForConditionalGeneration
 import torch
+import sys
+import subprocess
+import pkg_resources
+
+required = {'beautifulsoup4'}
+installed = {pkg.key for pkg in pkg_resources.working_set}
+missing = required - installed
+
+if missing:
+    python = sys.executable
+    subprocess.check_call([python, '-m', 'pip', 'install', *missing], stdout=subprocess.DEVNULL)
+
+from bs4 import BeautifulSoup
+
 
 
 def crawl(start_url: str, max_depth: int = 1, delay: float = 0.1) -> Tuple[List[Tuple[str, str]], List[str]]:
