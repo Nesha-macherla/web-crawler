@@ -15,7 +15,7 @@ import subprocess
 from bs4 import BeautifulSoup
 from sentence_transformers import SentenceTransformer
 import torch
-from transformers import pipeline
+from transformers import pipeline, T5Tokenizer, T5ForConditionalGeneration
 import numpy as np
     
 
