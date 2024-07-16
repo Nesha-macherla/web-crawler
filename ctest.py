@@ -8,7 +8,7 @@ import numpy as np
 import streamlit as st
 import importlib.util
 import requests
-from bs4 import BeautifulSoup
+import BeautifulSoup
 import numpy as np
 
 # List of packages to check
@@ -24,7 +24,7 @@ def check_package(package_name):
 # Check each package
 for package in packages:
     check_package(package)
-from bs4 import BeautifulSoup
+import BeautifulSoup
 from sentence_transformers import SentenceTransformer
 from transformers import T5Tokenizer, T5ForConditionalGeneration
 import torch
