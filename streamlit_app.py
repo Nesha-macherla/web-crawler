@@ -4,6 +4,13 @@ import subprocess
 
 st.title("BeautifulSoup Installation Check")
 
+# Attempt to install BeautifulSoup
+try:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "beautifulsoup4"])
+    st.success("BeautifulSoup installed successfully!")
+except subprocess.CalledProcessError:
+    st.error("Failed to install BeautifulSoup")
+
 st.write("Python version:", sys.version)
 st.write("Python executable:", sys.executable)
 
