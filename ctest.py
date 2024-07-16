@@ -115,6 +115,13 @@ def main():
                 st.session_state.texts.extend(chunks)
                 st.session_state.urls.extend([url] * len(chunks))
         st.session_state.crawled = True
+        st.session_state.crawled_urls = crawled_urls
+
+    # Display crawled URLs
+    if st.checkbox("Show crawled URLs"):
+        st.subheader("Crawled URLs:")
+        for url in st.session_state.crawled_urls:
+            st.write(url)
 
     # User input
     query = st.text_input("Enter your question about CUDA:")
