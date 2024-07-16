@@ -10,6 +10,17 @@ import importlib.util
 import requests
 #from bs4 import BeautifulSoup
 import streamlit as st
+import sys
+import subprocess
+
+st.write("Python version:", sys.version)
+st.write("Python executable:", sys.executable)
+
+try:
+    result = subprocess.run([sys.executable, "-m", "pip", "list"], capture_output=True, text=True)
+    st.code(result.stdout)
+except Exception as e:
+    st.error(f"Failed to list packages: {str(e)}")
 
 st.title("BeautifulSoup Test")
 
