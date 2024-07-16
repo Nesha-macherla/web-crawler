@@ -10,10 +10,9 @@ import importlib.util
 import requests
 import streamlit as st
 import sys
-import subprocess
 import os
 
-st.title("BeautifulSoup Installation Debug")
+st.title("Package Installation Debug")
 
 st.write("Current working directory:", os.getcwd())
 st.write("Contents of current directory:")
@@ -25,50 +24,36 @@ st.write("Python executable:", sys.executable)
 st.write("PYTHONPATH:")
 st.code(sys.path)
 
-st.write("Attempting to install BeautifulSoup...")
-try:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "beautifulsoup4"])
-    st.success("BeautifulSoup installed successfully!")
-except subprocess.CalledProcessError as e:
-    st.error(f"Failed to install BeautifulSoup: {str(e)}")
-
 st.write("Installed packages:")
 try:
+    import subprocess
     result = subprocess.run([sys.executable, "-m", "pip", "list"], capture_output=True, text=True)
     st.code(result.stdout)
 except Exception as e:
     st.error(f"Failed to list packages: {str(e)}")
 
-st.write("Attempting to import BeautifulSoup...")
+packages_to_check = ['bs4', 'torch', 'sentence_transformers', 'transformers', 'numpy']
+
+for package in packages_to_check:
+    try:
+        __import__(package)
+        st.success(f"Package {package} is installed.")
+    except ImportError:
+        st.error(f"Package {package} is not installed.")
+
+# Your main code starts here
+st.write("Main code execution begins here.")
 try:
-    import bs4
     from bs4 import BeautifulSoup
-    st.success("BeautifulSoup imported successfully!")
-    st.write("BeautifulSoup version:", bs4.__version__)
+    from sentence_transformers import SentenceTransformer
+    import torch
+    from transformers import pipeline
+    import numpy as np
+    
+    st.success("All required packages imported successfully!")
 except ImportError as e:
-    st.error(f"Failed to import BeautifulSoup: {str(e)}")
-    st.write("Python path:", sys.path)
-import numpy as np
+    st.error(f"Failed to import required packages: {str(e)}")
 
-# List of packages to check
-packages = ['bs4', 'torch', 'sentence_transformers', 'transformers', 'numpy']
-
-# Function to check if a package is installed
-def check_package(package_name):
-    if importlib.util.find_spec(package_name) is None:
-        st.error(f"Package {package_name} is not installed.")
-    else:
-        st.success(f"Package {package_name} is installed.")
-
-# Check each package
-for package in packages:
-    check_package(package)
-from sentence_transformers import SentenceTransformer
-from transformers import T5Tokenizer, T5ForConditionalGeneration
-import torch
-import importlib.util
-# List of packages to check
-packages = ['bs4', 'torch']
 
 # Function to check if a package is installed
 def check_package(package_name):
