@@ -9,33 +9,31 @@ import streamlit as st
 import importlib.util
 import sys
 import subprocess
+import pkg_resources
 
 def install(package):
-    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+    try:
+        pkg_resources.get_distribution(package)
+    except pkg_resources.DistributionNotFound:
+        print(f"{package} not found, installing...")
+        try:
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "--user", package])
+        except subprocess.CalledProcessError:
+            print(f"Failed to install {package}. Please install it manually.")
+            sys.exit(1)
 
-try:
-    from bs4 import BeautifulSoup
-except ImportError:
-    install('beautifulsoup4')
-    from bs4 import BeautifulSoup
+# List of required packages
+required_packages = ['beautifulsoup4', 'requests']  # Add other packages as needed
 
-try:
-    import torch
-except ImportError:
-    install('torch')
-    import torch
+# Install required packages
+for package in required_packages:
+    install(package)
 
-try:
-    from sentence_transformers import SentenceTransformer
-except ImportError:
-    install('sentence-transformers')
-    from sentence_transformers import SentenceTransformer
+# Your main code starts here
+import requests
+from bs4 import BeautifulSoup
 
-try:
-    from transformers import T5Tokenizer, T5ForConditionalGeneration
-except ImportError:
-    install('transformers')
-    from transformers import T5Tokenizer, T5ForConditionalGeneration
+
 
 import numpy as np
 
