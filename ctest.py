@@ -13,28 +13,41 @@ import streamlit as st
 import sys
 import subprocess
 
+st.title("BeautifulSoup Installation Debug")
+
+st.write("Current working directory:", os.getcwd())
+st.write("Contents of current directory:")
+st.code(os.listdir())
+
 st.write("Python version:", sys.version)
 st.write("Python executable:", sys.executable)
 
+st.write("PYTHONPATH:")
+st.code(sys.path)
+
+st.write("Attempting to install BeautifulSoup...")
+try:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "beautifulsoup4"])
+    st.success("BeautifulSoup installed successfully!")
+except subprocess.CalledProcessError as e:
+    st.error(f"Failed to install BeautifulSoup: {str(e)}")
+
+st.write("Installed packages:")
 try:
     result = subprocess.run([sys.executable, "-m", "pip", "list"], capture_output=True, text=True)
     st.code(result.stdout)
 except Exception as e:
     st.error(f"Failed to list packages: {str(e)}")
 
-st.title("BeautifulSoup Test")
-
+st.write("Attempting to import BeautifulSoup...")
 try:
+    import bs4
     from bs4 import BeautifulSoup
     st.success("BeautifulSoup imported successfully!")
+    st.write("BeautifulSoup version:", bs4.__version__)
 except ImportError as e:
     st.error(f"Failed to import BeautifulSoup: {str(e)}")
-    st.stop()
-
-# If import succeeds, try a simple BeautifulSoup operation
-html_doc = "<html><body><p>Hello, BeautifulSoup!</p></body></html>"
-soup = BeautifulSoup(html_doc, 'html.parser')
-st.write(soup.p.string)
+    st.write("Python path:", sys.path)
 import numpy as np
 
 # List of packages to check
@@ -50,7 +63,6 @@ def check_package(package_name):
 # Check each package
 for package in packages:
     check_package(package)
-import BeautifulSoup
 from sentence_transformers import SentenceTransformer
 from transformers import T5Tokenizer, T5ForConditionalGeneration
 import torch
