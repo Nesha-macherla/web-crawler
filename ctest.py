@@ -7,6 +7,37 @@ import time
 import numpy as np
 import streamlit as st
 import importlib.util
+import sys
+import subprocess
+
+def install(package):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+
+try:
+    from bs4 import BeautifulSoup
+except ImportError:
+    install('beautifulsoup4')
+    from bs4 import BeautifulSoup
+
+try:
+    import torch
+except ImportError:
+    install('torch')
+    import torch
+
+try:
+    from sentence_transformers import SentenceTransformer
+except ImportError:
+    install('sentence-transformers')
+    from sentence_transformers import SentenceTransformer
+
+try:
+    from transformers import T5Tokenizer, T5ForConditionalGeneration
+except ImportError:
+    install('transformers')
+    from transformers import T5Tokenizer, T5ForConditionalGeneration
+
+import numpy as np
 
 # List of packages to check
 packages = ['bs4', 'torch', 'sentence_transformers', 'transformers', 'numpy']
