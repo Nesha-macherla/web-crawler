@@ -8,7 +8,7 @@ import numpy as np
 import streamlit as st
 import importlib.util
 import requests
-#from bs4 import BeautifulSoup
+import bs4
 import streamlit as st
 import sys
 import subprocess
