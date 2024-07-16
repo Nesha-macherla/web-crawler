@@ -11,60 +11,13 @@ import requests
 import streamlit as st
 import sys
 import os
-
-st.title("Package Installation Debug")
-
-st.write("Current working directory:", os.getcwd())
-st.write("Contents of current directory:")
-st.code(os.listdir())
-
-st.write("Python version:", sys.version)
-st.write("Python executable:", sys.executable)
-
-st.write("PYTHONPATH:")
-st.code(sys.path)
-
-st.write("Installed packages:")
-try:
-    import subprocess
-    result = subprocess.run([sys.executable, "-m", "pip", "list"], capture_output=True, text=True)
-    st.code(result.stdout)
-except Exception as e:
-    st.error(f"Failed to list packages: {str(e)}")
-
-packages_to_check = ['bs4', 'torch', 'sentence_transformers', 'transformers', 'numpy']
-
-for package in packages_to_check:
-    try:
-        __import__(package)
-        st.success(f"Package {package} is installed.")
-    except ImportError:
-        st.error(f"Package {package} is not installed.")
-
-# Your main code starts here
-st.write("Main code execution begins here.")
-try:
-    from bs4 import BeautifulSoup
-    from sentence_transformers import SentenceTransformer
-    import torch
-    from transformers import pipeline
-    import numpy as np
+import subprocess
+from bs4 import BeautifulSoup
+from sentence_transformers import SentenceTransformer
+import torch
+from transformers import pipeline
+import numpy as np
     
-    st.success("All required packages imported successfully!")
-except ImportError as e:
-    st.error(f"Failed to import required packages: {str(e)}")
-
-
-# Function to check if a package is installed
-def check_package(package_name):
-    if importlib.util.find_spec(package_name) is None:
-        st.error(f"Package {package_name} is not installed.")
-    else:
-        st.success(f"Package {package_name} is installed.")
-
-# Check each package
-for package in packages:
-    check_package(package)
 
 
 
