@@ -11,11 +11,10 @@ from sentence_transformers import SentenceTransformer
 import torch
 from transformers import T5Tokenizer, T5ForConditionalGeneration
 
-# Disable SSL warnings (only if necessary and you understand the implications)
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def crawl(start_url: str, max_depth: int = 1, delay: float = 0.1) -> Tuple[List[Tuple[str, str]], List[str]]:
     visited = set()
     results = []
@@ -34,7 +33,7 @@ def crawl(start_url: str, max_depth: int = 1, delay: float = 0.1) -> Tuple[List[
 
             try:
                 time.sleep(delay)
-                response = requests.get(url, verify=False)  # Note: verify=False is not recommended for production
+                response = requests.get(url, verify=False, timeout=10)
                 soup = BeautifulSoup(response.text, 'html.parser')
 
                 text = soup.get_text()
@@ -70,82 +69,51 @@ def chunk_text(text: str, max_chunk_size: int = 1000) -> List[str]:
     
     return chunks
 
-class InMemoryStorage:
-    def __init__(self):
-        self.embeddings = []
-        self.texts = []
-        self.urls = []
-
-    def insert(self, embeddings, texts, urls):
-        self.embeddings.extend(embeddings)
-        self.texts.extend(texts)
-        self.urls.extend(urls)
-
-    def search(self, query_embedding, top_k=5):
-        similarities = np.dot(self.embeddings, query_embedding)
-        top_indices = np.argsort(similarities)[-top_k:][::-1]
-        return [(self.texts[i], self.urls[i]) for i in top_indices]
-
 @st.cache_resource
 def get_sentence_transformer():
-    return SentenceTransformer('distilbert-base-nli-mean-tokens')
+    return SentenceTransformer('paraphrase-MiniLM-L6-v2')
 
-def insert_chunks(storage, chunks: List[str], urls: List[str]):
-    model = get_sentence_transformer()
-    embeddings = model.encode(chunks)
-    storage.insert(embeddings, chunks, urls)
+@st.cache_resource
+def get_qa_pipeline():
+    return pipeline('question-answering', model='distilbert-base-cased-distilled-squad')
 
-def vector_search(storage, query: str, top_k: int = 5):
+def vector_search(embeddings, texts, urls, query: str, top_k: int = 5):
     model = get_sentence_transformer()
     query_embedding = model.encode([query])[0]
-    return storage.search(query_embedding, top_k)
+    similarities = np.dot(embeddings, query_embedding)
+    top_indices = np.argsort(similarities)[-top_k:][::-1]
+    return [(texts[i], urls[i]) for i in top_indices]
 
-class QuestionAnsweringSystem:
-    def __init__(self):
-        self.tokenizer = T5Tokenizer.from_pretrained("t5-small")
-        self.model = T5ForConditionalGeneration.from_pretrained("t5-small")
-        self.tokenizer.model_max_length = 1024
-        self.model.config.max_length = 1024
-    
-    @st.cache_data
-    def answer_question(self, question: str, context: str) -> str:
-        input_text = f"question: {question} context: {context}"
-        inputs = self.tokenizer(input_text, return_tensors="pt", max_length=1024, truncation=True)
-        
-        outputs = self.model.generate(inputs.input_ids, 
-                                      max_length=1024, 
-                                      num_beams=4, 
-                                      early_stopping=True)
-        answer = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-        
-        return answer
-
-def get_answer(storage, qa_system: QuestionAnsweringSystem, query: str) -> Tuple[str, str]:
-    results = vector_search(storage, query)
+def get_answer(embeddings, texts, urls, qa_pipeline, query: str) -> Tuple[str, str]:
+    results = vector_search(embeddings, texts, urls, query)
     context = " ".join([result[0] for result in results])
-    answer = qa_system.answer_question(query, context)
+    answer = qa_pipeline(question=query, context=context)
     source_url = results[0][1] if results else ""
-    return answer, source_url
+    return answer['answer'], source_url
 
 def main():
     st.title("CUDA Documentation QA System")
 
-    # Initialize storage and QA system
-    if 'storage' not in st.session_state:
-        st.session_state.storage = InMemoryStorage()
-    if 'qa_system' not in st.session_state:
-        st.session_state.qa_system = QuestionAnsweringSystem()
+    # Initialize embeddings, texts, and urls
+    if 'embeddings' not in st.session_state:
+        st.session_state.embeddings = []
+        st.session_state.texts = []
+        st.session_state.urls = []
 
-    storage = st.session_state.storage
-    qa_system = st.session_state.qa_system
+    # Initialize QA pipeline
+    qa_pipeline = get_qa_pipeline()
 
     # Crawl data (you might want to do this offline and load pre-crawled data instead)
     if 'crawled' not in st.session_state:
         with st.spinner("Crawling CUDA documentation..."):
             crawled_data, crawled_urls = crawl("https://docs.nvidia.com/cuda/", max_depth=1, delay=0.1)
+            model = get_sentence_transformer()
             for url, text in crawled_data:
                 chunks = chunk_text(text, max_chunk_size=1024)
-                insert_chunks(storage, chunks, [url] * len(chunks))
+                embeddings = model.encode(chunks)
+                st.session_state.embeddings.extend(embeddings)
+                st.session_state.texts.extend(chunks)
+                st.session_state.urls.extend([url] * len(chunks))
         st.session_state.crawled = True
 
     # User input
@@ -153,7 +121,13 @@ def main():
 
     if query:
         with st.spinner("Searching for an answer..."):
-            answer, source_url = get_answer(storage, qa_system, query)
+            answer, source_url = get_answer(
+                st.session_state.embeddings,
+                st.session_state.texts,
+                st.session_state.urls,
+                qa_pipeline,
+                query
+            )
 
         st.subheader("Answer:")
         st.write(answer)
