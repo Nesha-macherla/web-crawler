@@ -7,51 +7,8 @@ import time
 import numpy as np
 import streamlit as st
 import importlib.util
-import sys
-import subprocess
-import pkg_resources
-
-def install(package):
-    try:
-        pkg_resources.get_distribution(package)
-    except pkg_resources.DistributionNotFound:
-        print(f"{package} not found, installing...")
-        try:
-            subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-        except subprocess.CalledProcessError:
-            print(f"Failed to install {package}. Please install it manually.")
-            sys.exit(1)
-
-# List of required packages
-required_packages = ['beautifulsoup4', 'requests']  # Add other packages as needed
-
-# Install required packages
-for package in required_packages:
-    install(package)
-
-# Your main code starts here
 import requests
 from bs4 import BeautifulSoup
-
-# Rest of your code...
-
-# Optionally, upgrade pip
-print("Upgrading pip...")
-subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "pip"])
-
-# List of required packages
-required_packages = ['beautifulsoup4', 'requests']  # Add other packages as needed
-
-# Install required packages
-for package in required_packages:
-    install(package)
-
-# Your main code starts here
-import requests
-from bs4 import BeautifulSoup
-
-
-
 import numpy as np
 
 # List of packages to check
