@@ -8,7 +8,22 @@ import numpy as np
 import streamlit as st
 import importlib.util
 import requests
-import BeautifulSoup
+from bs4 import BeautifulSoup
+import streamlit as st
+
+st.title("BeautifulSoup Test")
+
+try:
+    from bs4 import BeautifulSoup
+    st.success("BeautifulSoup imported successfully!")
+except ImportError as e:
+    st.error(f"Failed to import BeautifulSoup: {str(e)}")
+    st.stop()
+
+# If import succeeds, try a simple BeautifulSoup operation
+html_doc = "<html><body><p>Hello, BeautifulSoup!</p></body></html>"
+soup = BeautifulSoup(html_doc, 'html.parser')
+st.write(soup.p.string)
 import numpy as np
 
 # List of packages to check
