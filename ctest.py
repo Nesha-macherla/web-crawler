@@ -11,6 +11,7 @@ import requests
 import streamlit as st
 import sys
 import subprocess
+import os
 
 st.title("BeautifulSoup Installation Debug")
 
