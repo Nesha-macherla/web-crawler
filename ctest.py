@@ -1,16 +1,16 @@
+import streamlit as st
 import requests
+from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 import re
 from typing import List, Tuple
 from collections import deque
 import time
 import numpy as np
-import streamlit as st
-from bs4 import BeautifulSoup
 from sentence_transformers import SentenceTransformer
-import torch
-from transformers import T5Tokenizer, T5ForConditionalGeneration
+from transformers import pipeline
 
+# Disable SSL warnings (only if necessary and you understand the implications)
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
