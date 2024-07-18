@@ -149,7 +149,7 @@ def main():
 
     if not st.session_state.initialized:
         with st.spinner("Initializing the system and crawling CUDA documentation..."):
-            crawled_data, crawled_urls = crawl("https://docs.nvidia.com/cuda/", max_links=5, delay=0.1)
+            crawled_data, crawled_urls = crawl("https://docs.nvidia.com/cuda/", max_links=10, delay=0.1)
             
             for url, text in crawled_data:
                 chunks = chunk_text(text, max_chunk_size=512)
