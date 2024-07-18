@@ -10,6 +10,8 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 import torch
+import gc
+import psutil
 
 # Use Streamlit's secrets management
 api_key = st.secrets["api_keys"]["openai"]
@@ -32,20 +34,20 @@ class InMemoryStorage:
 
 class AdvancedQuestionAnsweringSystem:
     def __init__(self):
-        self.tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-large")
-        self.model = AutoModelForSeq2SeqLM.from_pretrained("google/flan-t5-large")
+        self.tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-small")
+        self.model = AutoModelForSeq2SeqLM.from_pretrained("google/flan-t5-small")
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
     
     def answer_question(self, question: str, context: str) -> str:
         prompt = f"Context: {context}\n\nQuestion: {question}\n\nDetailed Answer:"
-        inputs = self.tokenizer(prompt, return_tensors="pt", max_length=1024, truncation=True).to(self.device)
+        inputs = self.tokenizer(prompt, return_tensors="pt", max_length=512, truncation=True).to(self.device)
         
         outputs = self.model.generate(
             inputs.input_ids,
-            max_length=512,
-            num_beams=4,
-            length_penalty=2.0,
+            max_length=256,
+            num_beams=2,
+            length_penalty=1.0,
             early_stopping=True
         )
         answer = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
@@ -53,7 +55,7 @@ class AdvancedQuestionAnsweringSystem:
         return answer
 
 @st.cache_data
-def crawl(start_url: str, max_links: int = 15, delay: float = 0.1) -> Tuple[List[Tuple[str, str]], List[str]]:
+def crawl(start_url: str, max_links: int = 10, delay: float = 0.1) -> Tuple[List[Tuple[str, str]], List[str]]:
     visited = set()
     results = []
     queue = deque([start_url])
@@ -91,7 +93,7 @@ def crawl(start_url: str, max_links: int = 15, delay: float = 0.1) -> Tuple[List
 
     return results, crawled_urls
 
-def chunk_text(text: str, max_chunk_size: int = 1000) -> List[str]:
+def chunk_text(text: str, max_chunk_size: int = 512) -> List[str]:
     chunks = []
     current_chunk = ""
 
@@ -109,14 +111,14 @@ def chunk_text(text: str, max_chunk_size: int = 1000) -> List[str]:
 
 @st.cache_resource
 def get_sentence_transformer():
-    return SentenceTransformer('all-MiniLM-L6-v2')
+    return SentenceTransformer('paraphrase-MiniLM-L3-v2')
 
 def insert_chunks(storage, chunks: List[str], urls: List[str]):
     model = get_sentence_transformer()
     embeddings = model.encode(chunks)
     storage.insert(embeddings, chunks, urls)
 
-def vector_search(storage, query: str, top_k: int = 5):
+def vector_search(storage, query: str, top_k: int = 3):
     model = get_sentence_transformer()
     query_embedding = model.encode([query])[0]
     return storage.search(query_embedding, top_k)
@@ -127,6 +129,11 @@ def get_answer(storage, qa_system: AdvancedQuestionAnsweringSystem, query: str) 
     answer = qa_system.answer_question(query, context)
     source_urls = list(set([result[1] for result in results]))  # Remove duplicate URLs
     return answer, source_urls
+
+def print_memory_usage():
+    process = psutil.Process()
+    memory_info = process.memory_info()
+    st.write(f"Memory usage: {memory_info.rss / 1024 / 1024:.2f} MB")
 
 def main():
     st.title("CUDA Documentation QA System")
@@ -142,15 +149,17 @@ def main():
 
     if not st.session_state.initialized:
         with st.spinner("Initializing the system and crawling CUDA documentation..."):
-            crawled_data, crawled_urls = crawl("https://docs.nvidia.com/cuda/", max_links=15, delay=0.1)
+            crawled_data, crawled_urls = crawl("https://docs.nvidia.com/cuda/", max_links=5, delay=0.1)
             
             for url, text in crawled_data:
-                chunks = chunk_text(text, max_chunk_size=1024)
+                chunks = chunk_text(text, max_chunk_size=512)
                 insert_chunks(st.session_state.storage, chunks, [url] * len(chunks))
             
             st.session_state.initialized = True
 
-        st.success(f"Initialization complete! Processed {len(crawled_data)} pages.")
+        del crawled_data
+        gc.collect()
+        st.success(f"Initialization complete! Processed {len(crawled_urls)} pages.")
 
     query = st.text_input("Enter your question about CUDA:")
 
@@ -164,6 +173,8 @@ def main():
         st.subheader("Sources:")
         for url in source_urls:
             st.write(url)
+
+    print_memory_usage()
 
 if __name__ == "__main__":
     main()
