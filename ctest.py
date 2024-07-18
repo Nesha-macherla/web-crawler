@@ -8,55 +8,93 @@ from collections import deque
 import time
 import numpy as np
 from sentence_transformers import SentenceTransformer
-from transformers import pipeline
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+import torch
 
-# Disable SSL warnings (only if necessary and you understand the implications)
-import urllib3
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+# Use Streamlit's secrets management
+api_key = st.secrets["api_keys"]["openai"]
 
-@st.cache_data(ttl=3600)
-def crawl(start_url: str, max_depth: int = 1, delay: float = 0.1) -> Tuple[List[Tuple[str, str]], List[str]]:
+class InMemoryStorage:
+    def __init__(self):
+        self.embeddings = []
+        self.texts = []
+        self.urls = []
+
+    def insert(self, embeddings, texts, urls):
+        self.embeddings.extend(embeddings)
+        self.texts.extend(texts)
+        self.urls.extend(urls)
+
+    def search(self, query_embedding, top_k=5):
+        similarities = np.dot(self.embeddings, query_embedding)
+        top_indices = np.argsort(similarities)[-top_k:][::-1]
+        return [(self.texts[i], self.urls[i]) for i in top_indices]
+
+class AdvancedQuestionAnsweringSystem:
+    def __init__(self):
+        self.tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-large")
+        self.model = AutoModelForSeq2SeqLM.from_pretrained("google/flan-t5-large")
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model.to(self.device)
+    
+    def answer_question(self, question: str, context: str) -> str:
+        prompt = f"Context: {context}\n\nQuestion: {question}\n\nDetailed Answer:"
+        inputs = self.tokenizer(prompt, return_tensors="pt", max_length=1024, truncation=True).to(self.device)
+        
+        outputs = self.model.generate(
+            inputs.input_ids,
+            max_length=512,
+            num_beams=4,
+            length_penalty=2.0,
+            early_stopping=True
+        )
+        answer = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        
+        return answer
+
+@st.cache_data
+def crawl(start_url: str, max_links: int = 15, delay: float = 0.1) -> Tuple[List[Tuple[str, str]], List[str]]:
     visited = set()
     results = []
-    queue = deque([(start_url, 0)])
+    queue = deque([start_url])
     crawled_urls = []
 
-    with st.spinner(f"Crawling {start_url}..."):
-        while queue:
-            url, depth = queue.popleft()
+    while queue and len(crawled_urls) < max_links:
+        url = queue.popleft()
 
-            if depth > max_depth or url in visited:
-                continue
+        if url in visited:
+            continue
 
-            visited.add(url)
-            crawled_urls.append(url)
+        visited.add(url)
+        crawled_urls.append(url)
 
-            try:
-                time.sleep(delay)
-                response = requests.get(url, verify=False, timeout=10)
-                soup = BeautifulSoup(response.text, 'html.parser')
+        try:
+            time.sleep(delay)
+            response = requests.get(url)
+            soup = BeautifulSoup(response.text, 'html.parser')
 
-                text = soup.get_text()
-                text = re.sub(r'\s+', ' ', text).strip()
+            text = soup.get_text()
+            text = re.sub(r'\s+', ' ', text).strip()
 
-                results.append((url, text))
+            results.append((url, text))
 
-                if depth < max_depth:
-                    for link in soup.find_all('a', href=True):
-                        next_url = urljoin(url, link['href'])
-                        if next_url.startswith('https://docs.nvidia.com/cuda/') and next_url not in visited:
-                            queue.append((next_url, depth + 1))
+            if len(crawled_urls) < max_links:
+                for link in soup.find_all('a', href=True):
+                    next_url = urljoin(url, link['href'])
+                    if next_url.startswith('https://docs.nvidia.com/cuda/') and next_url not in visited:
+                        queue.append(next_url)
+                        if len(queue) + len(crawled_urls) >= max_links:
+                            break
 
-            except Exception as e:
-                st.error(f"Error crawling {url}: {e}")
+        except Exception as e:
+            st.error(f"Error crawling {url}: {e}")
 
     return results, crawled_urls
 
-@st.cache_data
 def chunk_text(text: str, max_chunk_size: int = 1000) -> List[str]:
     chunks = []
     current_chunk = ""
-    
+
     for sentence in re.split(r'(?<=[.!?])\s+', text):
         if len(current_chunk) + len(sentence) <= max_chunk_size:
             current_chunk += sentence + " "
@@ -71,76 +109,61 @@ def chunk_text(text: str, max_chunk_size: int = 1000) -> List[str]:
 
 @st.cache_resource
 def get_sentence_transformer():
-    return SentenceTransformer('paraphrase-MiniLM-L6-v2')
+    return SentenceTransformer('all-MiniLM-L6-v2')
 
-@st.cache_resource
-def get_qa_pipeline():
-    return pipeline('question-answering', model='distilbert-base-cased-distilled-squad')
+def insert_chunks(storage, chunks: List[str], urls: List[str]):
+    model = get_sentence_transformer()
+    embeddings = model.encode(chunks)
+    storage.insert(embeddings, chunks, urls)
 
-def vector_search(embeddings, texts, urls, query: str, top_k: int = 5):
+def vector_search(storage, query: str, top_k: int = 5):
     model = get_sentence_transformer()
     query_embedding = model.encode([query])[0]
-    similarities = np.dot(embeddings, query_embedding)
-    top_indices = np.argsort(similarities)[-top_k:][::-1]
-    return [(texts[i], urls[i]) for i in top_indices]
+    return storage.search(query_embedding, top_k)
 
-def get_answer(embeddings, texts, urls, qa_pipeline, query: str) -> Tuple[str, str]:
-    results = vector_search(embeddings, texts, urls, query)
+def get_answer(storage, qa_system: AdvancedQuestionAnsweringSystem, query: str) -> Tuple[str, List[str]]:
+    results = vector_search(storage, query, top_k=3)
     context = " ".join([result[0] for result in results])
-    answer = qa_pipeline(question=query, context=context)
-    source_url = results[0][1] if results else ""
-    return answer['answer'], source_url
+    answer = qa_system.answer_question(query, context)
+    source_urls = list(set([result[1] for result in results]))  # Remove duplicate URLs
+    return answer, source_urls
 
 def main():
     st.title("CUDA Documentation QA System")
 
-    # Initialize embeddings, texts, and urls
-    if 'embeddings' not in st.session_state:
-        st.session_state.embeddings = []
-        st.session_state.texts = []
-        st.session_state.urls = []
+    if 'storage' not in st.session_state:
+        st.session_state.storage = InMemoryStorage()
 
-    # Initialize QA pipeline
-    qa_pipeline = get_qa_pipeline()
+    if 'qa_system' not in st.session_state:
+        st.session_state.qa_system = AdvancedQuestionAnsweringSystem()
 
-    # Crawl data (you might want to do this offline and load pre-crawled data instead)
-    if 'crawled' not in st.session_state:
-        with st.spinner("Crawling CUDA documentation..."):
-            crawled_data, crawled_urls = crawl("https://docs.nvidia.com/cuda/", max_depth=1, delay=0.1)
-            model = get_sentence_transformer()
+    if 'initialized' not in st.session_state:
+        st.session_state.initialized = False
+
+    if not st.session_state.initialized:
+        with st.spinner("Initializing the system and crawling CUDA documentation..."):
+            crawled_data, crawled_urls = crawl("https://docs.nvidia.com/cuda/", max_links=15, delay=0.1)
+            
             for url, text in crawled_data:
                 chunks = chunk_text(text, max_chunk_size=1024)
-                embeddings = model.encode(chunks)
-                st.session_state.embeddings.extend(embeddings)
-                st.session_state.texts.extend(chunks)
-                st.session_state.urls.extend([url] * len(chunks))
-        st.session_state.crawled = True
-        st.session_state.crawled_urls = crawled_urls
+                insert_chunks(st.session_state.storage, chunks, [url] * len(chunks))
+            
+            st.session_state.initialized = True
 
-    # Display crawled URLs
-    if st.checkbox("Show crawled URLs"):
-        st.subheader("Crawled URLs:")
-        for url in st.session_state.crawled_urls:
-            st.write(url)
+        st.success(f"Initialization complete! Processed {len(crawled_data)} pages.")
 
-    # User input
     query = st.text_input("Enter your question about CUDA:")
 
     if query:
         with st.spinner("Searching for an answer..."):
-            answer, source_url = get_answer(
-                st.session_state.embeddings,
-                st.session_state.texts,
-                st.session_state.urls,
-                qa_pipeline,
-                query
-            )
-
+            answer, source_urls = get_answer(st.session_state.storage, st.session_state.qa_system, query)
+        
         st.subheader("Answer:")
         st.write(answer)
-
-        st.subheader("Source:")
-        st.write(source_url)
+        
+        st.subheader("Sources:")
+        for url in source_urls:
+            st.write(url)
 
 if __name__ == "__main__":
     main()
