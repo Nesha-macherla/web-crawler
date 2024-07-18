@@ -133,7 +133,7 @@ def get_answer(storage, qa_system: AdvancedQuestionAnsweringSystem, query: str) 
 def print_memory_usage():
     process = psutil.Process()
     memory_info = process.memory_info()
-    st.write(f"Memory usage: {memory_info.rss / 1024 / 1024:.2f} MB")
+    #st.write(f"Memory usage: {memory_info.rss / 1024 / 1024:.2f} MB")
 
 def main():
     st.title("CUDA Documentation QA System")
