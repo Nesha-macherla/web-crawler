@@ -27,7 +27,7 @@ class InMemoryStorage:
         self.texts.extend(texts)
         self.urls.extend(urls)
 
-    def search(self, query_embedding, top_k=5):
+    def search(self, query_embedding, top_k=10):
         similarities = np.dot(self.embeddings, query_embedding)
         top_indices = np.argsort(similarities)[-top_k:][::-1]
         return [(self.texts[i], self.urls[i]) for i in top_indices]
